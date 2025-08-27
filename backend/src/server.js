@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import path from "path";
+import helmet from "helmet"; // 👈 add helmet
 
 import notesRoutes from "./routes/notesRoutes.js";
 import { connectDB } from "./config/db.js";
@@ -13,6 +14,22 @@ const app = express();
 const PORT = process.env.PORT || 5001;
 const __dirname = path.resolve();
 
+// ✅ Helmet security middleware with CSP that allows favicon, images, etc.
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "https:"],
+        styleSrc: ["'self'", "https:", "'unsafe-inline'"],
+        imgSrc: ["'self'", "data:", "https:"],
+        connectSrc: ["'self'", "https:"],
+        fontSrc: ["'self'", "https:", "data:"],
+      },
+    },
+  })
+);
+
 // middleware
 if (process.env.NODE_ENV !== "production") {
   app.use(
@@ -21,17 +38,12 @@ if (process.env.NODE_ENV !== "production") {
     })
   );
 }
-app.use(express.json()); // this middleware will parse JSON bodies: req.body
+app.use(express.json()); 
 app.use(rateLimiter);
-
-// our simple custom middleware
-// app.use((req, res, next) => {
-//   console.log(`Req method is ${req.method} & Req URL is ${req.url}`);
-//   next();
-// });
 
 app.use("/api/notes", notesRoutes);
 
+// serve frontend in production
 if (process.env.NODE_ENV === "production") {
   app.use(express.static(path.join(__dirname, "../frontend/dist")));
 
