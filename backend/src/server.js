@@ -3,13 +3,11 @@ import cors from "cors";
 import dotenv from "dotenv";
 import path from "path";
 import helmet from "helmet";
-
 import notesRoutes from "./routes/notesRoutes.js";
 import { connectDB } from "./config/db.js";
 import rateLimiter from "./middleware/rateLimiter.js";
 
 dotenv.config();
-
 const app = express();
 const PORT = process.env.PORT || 5001;
 const __dirname = path.resolve();
@@ -34,7 +32,7 @@ app.use(
 
 // 🛠 fallback if Render still injects CSP
 app.use((req, res, next) => {
-  res.removeHeader("Content-Security-Policy"); // strip Render’s default
+  res.removeHeader("Content-Security-Policy"); // strip Render's default
   res.setHeader(
     "Content-Security-Policy",
     "default-src 'self'; script-src 'self' https:; style-src 'self' https: 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https:; font-src 'self' https: data:; object-src 'none'"
@@ -54,20 +52,37 @@ if (process.env.NODE_ENV !== "production") {
 app.use(express.json());
 app.use(rateLimiter);
 
-// API routes
+// API routes FIRST - before static files
 app.use("/api/notes", notesRoutes);
+
+// Health check endpoint
+app.get("/api/health", (req, res) => {
+  res.json({ status: "Server is running!" });
+});
 
 // serve frontend in production
 if (process.env.NODE_ENV === "production") {
-  app.use(express.static(path.join(__dirname, "../frontend/dist")));
-
+  // Serve static files from the frontend dist folder
+  const frontendPath = path.join(__dirname, "frontend", "dist");
+  app.use(express.static(frontendPath));
+  
+  // Handle all non-API routes by serving the React app
   app.get("*", (req, res) => {
-    res.sendFile(path.join(__dirname, "../frontend", "dist", "index.html"));
+    // Make sure this doesn't interfere with API routes
+    if (!req.path.startsWith('/api')) {
+      res.sendFile(path.join(frontendPath, "index.html"));
+    }
+  });
+} else {
+  app.get("/", (req, res) => {
+    res.json({ message: "API is running in development mode" });
   });
 }
 
 connectDB().then(() => {
   app.listen(PORT, () => {
     console.log("Server started on PORT:", PORT);
+    console.log("NODE_ENV:", process.env.NODE_ENV);
+    console.log("__dirname:", __dirname);
   });
 });
