@@ -9,7 +9,7 @@ import rateLimiter from "./middleware/rateLimiter.js";
 
 dotenv.config();
 const app = express();
-const PORT = process.env.PORT || 5001;
+const PORT = process.env.PORT || 5002;
 const __dirname = path.resolve();
 
 // ✅ Helmet with a CSP that allows favicon, images, fonts, etc.
@@ -27,16 +27,22 @@ app.use(
         upgradeInsecureRequests: [],
       },
     },
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+    crossOriginEmbedderPolicy: false,
   })
 );
 
-// 🛠 fallback if Render still injects CSP
+// 🛠 fallback if Render still injects CSP and add CORP headers
 app.use((req, res, next) => {
   res.removeHeader("Content-Security-Policy"); // strip Render's default
   res.setHeader(
     "Content-Security-Policy",
     "default-src 'self'; script-src 'self' https:; style-src 'self' https: 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https:; font-src 'self' https: data:; object-src 'none'"
   );
+  // Add Cross-Origin-Resource-Policy header
+  res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
+  // Add other helpful headers
+  res.setHeader("Cross-Origin-Embedder-Policy", "unsafe-none");
   next();
 });
 
@@ -58,6 +64,11 @@ app.use("/api/notes", notesRoutes);
 // Health check endpoint
 app.get("/api/health", (req, res) => {
   res.json({ status: "Server is running!" });
+});
+
+// Handle favicon.ico requests
+app.get("/favicon.ico", (req, res) => {
+  res.status(204).end(); // No content
 });
 
 // serve frontend in production
