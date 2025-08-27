@@ -6,6 +6,7 @@ import path from "path";
 import notesRoutes from "./routes/notesRoutes.js";
 import { connectDB } from "./config/db.js";
 import rateLimiter from "./middleware/rateLimiter.js";
+import visitorRoutes from "./routes/visitorRoutes.js";
 
 dotenv.config();
 
@@ -21,17 +22,15 @@ if (process.env.NODE_ENV !== "production") {
     })
   );
 }
-app.use(express.json()); // this middleware will parse JSON bodies: req.body
+
+app.use(express.json()); 
 app.use(rateLimiter);
 
-// our simple custom middleware
-// app.use((req, res, next) => {
-//   console.log(`Req method is ${req.method} & Req URL is ${req.url}`);
-//   next();
-// });
-
+// Routes
 app.use("/api/notes", notesRoutes);
+app.use("/api/visitors", visitorRoutes);
 
+// Static files (production)
 if (process.env.NODE_ENV === "production") {
   app.use(express.static(path.join(__dirname, "../frontend/dist")));
 
@@ -40,6 +39,7 @@ if (process.env.NODE_ENV === "production") {
   });
 }
 
+// Start server
 connectDB().then(() => {
   app.listen(PORT, () => {
     console.log("Server started on PORT:", PORT);
