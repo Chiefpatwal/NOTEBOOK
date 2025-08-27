@@ -1,5 +1,5 @@
 {
-  "name": "notebook",
+  "name": "mern-thinkboard",
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
